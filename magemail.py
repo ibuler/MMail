@@ -123,5 +123,5 @@ if __name__ == '__main__':
     mail = MageMail()
     try:
         mail.run()
-    except KeyboardInterrupt, e:
+    except:
         mail.save_other(mail.to_mails, mail.mail_list_file)

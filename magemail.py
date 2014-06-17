@@ -123,5 +123,6 @@ if __name__ == '__main__':
     mail = MageMail()
     try:
         mail.run()
-    except:
+    except BaseException, e:
+        print e
         mail.save_other(mail.to_mails, mail.mail_list_file)

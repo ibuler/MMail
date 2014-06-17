@@ -1,7 +1,7 @@
 #/usr/bin/python
 #coding:utf-8
 
-f = open('user_list.txt')
+f = open('mail_list.txt')
 all = f.readlines()
 f.close()
 

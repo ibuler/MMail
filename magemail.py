@@ -31,6 +31,8 @@ class MageMail(object):
         self.subject = self._read_to_utf8(self.mail_subject_file)
         self.body = self._read_to_utf8(self.mail_content_file)
         self.mail = MIMEText(self.body.encode(encoding), 'html', encoding)
+        self.mail['Subject'] = Header(self.subject, encoding)
+        self.mail['Date'] = formatdate()
         self.to_mails = self._read_mail_list(self.mail_list_file)
 
     def _read_to_utf8(self, filename):
@@ -46,7 +48,7 @@ class MageMail(object):
         f = open(filename)
         for line in f:
             if '@' in line:
-                to_mails.append(line)
+                to_mails.append(line.strip())
         f.close()
         return to_mails
 
@@ -65,14 +67,8 @@ class MageMail(object):
         f.close()
         return auth
 
-    def _init_mail(self, from_addr=None, to_addr=None):
-        """init a mail object"""
-        self.mail['Subject'] = Header(self.subject, encoding)
-        self.mail['Date'] = formatdate()
-        self.mail['From'] = from_addr
-        self.mail['To'] = to_addr
 
-    def _send_mail(self, username, password, mail_addr, mail):
+    def _send_mail(self, username, password, mail_addrs, mail):
         """send a mail"""
         smtp = smtplib.SMTP_SSL(self.smtphost, self.smtpport)
         smtp.ehlo()
@@ -81,39 +77,42 @@ class MageMail(object):
         except smtplib.SMTPAuthenticationError:
             print '%s: %s Auth Error, exit!' % (username, password)
             return
-        
-        try:
-            smtp.sendmail(username, mail_addr, mail.as_string())
-            # print 'Test Sending!'
-            # print mail.as_string()
-        except (smtplib.SMTPRecipientsRefused, smtplib.SMTPDataError):
-            print 'send mail to %s Failed.' % mail_addr
-        else:
-            print 'send mail to %s Ok.' % mail_addr
-        finally:
-            smtp.close()
+
+        for mail_addr in mail_addrs:
+            del self.mail['From']
+            del self.mail['To']
+            self.mail['From'] = username
+            self.mail['To'] = ','.join(mail_addr.split())
+            try:
+                smtp.sendmail(username, mail_addr.split(), mail.as_string())
+            #print 'Test Sending!'
+            #print mail.as_string()
+            except (smtplib.SMTPRecipientsRefused, smtplib.SMTPDataError):
+                print 'send mail to %s Failed.' % mail_addr
+            else:
+                print 'send mail to %s Ok.' % mail_addr
+        smtp.close()
 
     def save_other(self, a_list, filename):
         """save not send mail_list to the mail_list file"""
         f = open(filename, 'w')
         for line in a_list:
-            f.write('%s' % line)
+            f.write('%s\n' % line)
         f.close()
 
     def run(self):
         auth = self._read_mail_user(self.mail_user_file)
         while True:
             for username, password in auth.items():
+                to_mails = []
                 print '#'*20, username, '#'*20
                 for i in range(self.every_send_nums):
                     try:
-                        to_mail = self.to_mails.pop().strip()
+                        to_mails.append(self.to_mails.pop())
                     except IndexError:
                         print 'Mail_list is empty.'
                         sys.exit()
-                    self._init_mail(username, ','.join(to_mail.split()))
-                    self._send_mail(username, password, to_mail.split(), self.mail)
-                    time.sleep(self.send_per_sleep)
+                self._send_mail(username, password, to_mails, self.mail)
                 time.sleep(self.every_account_send_sleep)
             print 'Prepare SendMail Next Loop!'
             time.sleep(self.all_account_sleep)

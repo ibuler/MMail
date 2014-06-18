@@ -1,3 +1,2 @@
-aaa@qq.com  bbb@qq.com
+aaa@qq.com bbb@qq.com
 ccc@qq.com
-ddd@qq.com

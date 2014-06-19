@@ -110,8 +110,11 @@ class MageMail(object):
                     try:
                         to_mails.append(self.to_mails.pop())
                     except IndexError:
-                        print 'Mail_list is empty.'
-                        sys.exit()
+                        if to_mails:
+                            break
+                        else:
+                            print 'Mail_list is empty.'
+                            sys.exit()
                 self._send_mail(username, password, to_mails, self.mail)
                 time.sleep(self.every_account_send_sleep)
             print 'Prepare SendMail Next Loop!'
